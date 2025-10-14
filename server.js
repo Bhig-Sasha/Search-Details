@@ -8,29 +8,37 @@ const path = require("path");
 
 const app = express();
 
-// --- Load Google Service Account Key from File ---
-let KEY = null;
-try {
-  const keyPath = path.join(__dirname, "GOOGLE_SERVICE_ACCOUNT_KEY.json");
-  KEY = JSON.parse(fs.readFileSync(keyPath, "utf8"));
-  console.log("✅ Loaded service account key from file");
-} catch (err) {
-  console.error("❌ Could not load GOOGLE_SERVICE_ACCOUNT_KEY.json:", err);
-  process.exit(1);
-}
-
-// --- Configuration ---
+// ===============================
+// 🔧 Configuration
+// ===============================
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || "defaultsecret";
 const SHEET_ID = process.env.USERS_SHEET_ID;
 
-// Validate .env variables
-if (!SHEET_ID) {
-  console.error("❌ USERS_SHEET_ID not set in .env");
+// ===============================
+// 🔐 Load Google Service Account Key
+// ===============================
+let KEY = null;
+try {
+  const keyPath = path.join(__dirname, "GOOGLE_SERVICE_ACCOUNT_KEY.json");
+
+  if (fs.existsSync(keyPath)) {
+    KEY = JSON.parse(fs.readFileSync(keyPath, "utf8"));
+    console.log("✅ Loaded service account key from file (local dev)");
+  } else if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+    KEY = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+    console.log("✅ Loaded service account key from environment variable (Render)");
+  } else {
+    throw new Error("No service account key found in file or environment");
+  }
+} catch (err) {
+  console.error("❌ Could not load GOOGLE_SERVICE_ACCOUNT_KEY:", err.message);
   process.exit(1);
 }
 
-// --- Middleware ---
+// ===============================
+// 🧩 Middleware
+// ===============================
 app.use(cors({
   origin: [
     "https://student-details1.netlify.app",
@@ -40,19 +48,23 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// --- Google Sheets Setup ---
+// ===============================
+// 📊 Google Sheets Setup
+// ===============================
 const auth = new google.auth.GoogleAuth({
   credentials: KEY,
   scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
 });
 const sheets = google.sheets({ version: "v4", auth });
 
-// --- Helper: fetch users from sheet ---
+// ===============================
+// 🧠 Helper: Fetch users from Sheet
+// ===============================
 async function getUsers() {
   try {
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: "Sheet1!A:D", // Username, Password, Full Name, Role
+      range: "User_1!A:D", // Adjusted for your actual sheet name
     });
 
     const rows = res.data.values || [];
@@ -74,7 +86,9 @@ async function getUsers() {
   }
 }
 
-// --- LOGIN ROUTE ---
+// ===============================
+// 🔑 Login Route
+// ===============================
 app.post("/api/auth/login", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password)
@@ -83,14 +97,20 @@ app.post("/api/auth/login", async (req, res) => {
   try {
     const users = await getUsers();
     const user = users.find(
-      u => u.username.toLowerCase() === username.toLowerCase() && u.password === password
+      (u) =>
+        u.username.toLowerCase() === username.toLowerCase() &&
+        u.password === password
     );
 
     if (!user)
       return res.status(401).json({ message: "Invalid username or password" });
 
     const token = jwt.sign(
-      { user: user.username, level: user.level, fullName: user.fullName },
+      {
+        user: user.username,
+        level: user.level,
+        fullName: user.fullName,
+      },
       JWT_SECRET,
       { expiresIn: "1h" }
     );
@@ -99,7 +119,7 @@ app.post("/api/auth/login", async (req, res) => {
       token,
       level: user.level,
       username: user.username,
-      fullName: user.fullName
+      fullName: user.fullName,
     });
   } catch (err) {
     console.error("Login error:", err.message);
@@ -107,21 +127,27 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-// --- AUTHENTICATION MIDDLEWARE ---
+// ===============================
+// 🔒 Token Authentication Middleware
+// ===============================
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader?.split(" ")[1];
 
-  if (!token) return res.status(401).json({ message: "No token provided" });
+  if (!token)
+    return res.status(401).json({ message: "No token provided" });
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(401).json({ message: "Invalid or expired token" });
+    if (err)
+      return res.status(401).json({ message: "Invalid or expired token" });
     req.user = decoded;
     next();
   });
 }
 
-// --- PROTECTED ROUTE ---
+// ===============================
+// 🧾 Protected Route Example
+// ===============================
 app.get("/api/check", authenticateToken, (req, res) => {
   res.json({
     message: "Authorized",
@@ -131,7 +157,9 @@ app.get("/api/check", authenticateToken, (req, res) => {
   });
 });
 
-// --- TEST SHEET CONNECTION ROUTE ---
+// ===============================
+// 🧪 Test Sheet Connection
+// ===============================
 app.get("/api/test-users", async (req, res) => {
   try {
     const users = await getUsers();
@@ -146,7 +174,9 @@ app.get("/api/test-users", async (req, res) => {
   }
 });
 
-// --- Start Server ---
+// ===============================
+// 🚀 Start Server
+// ===============================
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
