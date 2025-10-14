@@ -7,36 +7,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg-1:#eef3ff; 
-  --bg-2:#e8f0ff; 
-  --card:#fff;
-  --primary:#2f6fff; 
-  --primary-2:#4361ee;
-  --muted:#6c757d; 
-  --shadow:0 8px 30px rgba(46,61,95,.08);
-  --radius:14px; 
-  --transition:250ms cubic-bezier(.2,.9,.3,1);
+  --bg-1:#eef3ff; --bg-2:#e8f0ff; --card:#fff;
+  --primary:#2f6fff; --primary-2:#4361ee;
+  --muted:#6c757d; --shadow:0 8px 30px rgba(46,61,95,.08);
+  --radius:14px; --transition:250ms cubic-bezier(.2,.9,.3,1);
 }
-*{
-box-sizing:border-box;
-margin:0;
-padding:0;
-}
-
+*{box-sizing:border-box;margin:0;padding:0;}
 body{
   font-family:'Poppins',sans-serif;
   background:linear-gradient(135deg,var(--bg-1),var(--bg-2));
   color:#0b1230; padding:28px; -webkit-font-smoothing:antialiased;
 }
-.wrap{
-max-width:1200px;
-margin:0 auto;
-display:grid;
-grid-template-columns:1fr 360px;
-gap:24px;
-align-items:start;
-}
-
+.wrap{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start;}
 header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:16px;}
 header h1{font-size:22px;font-weight:600;color:var(--primary-2);}
 header p{color:var(--muted);font-size:13px;margin-top:2px;}
