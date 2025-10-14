@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Security Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family:'Poppins',sans-serif;
+      background: linear-gradient(135deg, #f5f6fa, #e8ecf1);
+      display:flex; justify-content:center; align-items:center;
+      min-height:100vh; padding:20px;
+    }
+    .login-container { width:100%; max-width:400px; perspective:1000px; }
+    .login-box {
+      background:#fff; padding:40px 30px; border-radius:15px;
+      box-shadow:0 10px 25px rgba(0,0,0,0.1); transform-style:preserve-3d;
+      animation:fadeIn 0.8s ease-out; transition:transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .login-box:hover { transform:translateY(-5px); box-shadow:0 15px 30px rgba(0,0,0,0.15); }
+    h2 {
+      text-align:center; margin-bottom:25px; color:#2c3e50; font-weight:600; position:relative; padding-bottom:10px;
+    }
+    h2:after {
+      content:''; position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+      width:50px; height:3px; background:#007bff; border-radius:2px;
+    }
+    .input-group { position:relative; margin-bottom:25px; }
+    input {
+      width:100%; padding:12px 15px; border:1px solid #ddd; border-radius:8px;
+      font-size:14px; transition:all 0.3s ease; background:#f9f9f9;
+    }
+    input:focus { outline:none; border-color:#007bff; box-shadow:0 0 0 3px rgba(0,123,255,0.1); background:#fff; transform:translateY(-2px);}
+    label {
+      position:absolute; top:50%; left:15px; transform:translateY(-50%);
+      color:#999; font-size:14px; pointer-events:none; transition:all 0.3s ease;
+    }
+    input:focus + label,
+    input:not(:placeholder-shown) + label {
+      top:-10px; left:10px; font-size:12px; color:#007bff; background:#fff; padding:0 5px;
+    }
+    button {
+      width:100%; padding:12px; background:#007bff; color:#fff; border:none; border-radius:8px;
+      cursor:pointer; font-size:16px; font-weight:500; transition:all 0.3s ease; position:relative; overflow:hidden;
+    }
+    button:hover { background:#0056b3; transform:translateY(-2px); box-shadow:0 5px 15px rgba(0,123,255,0.3);}
+    button:active { transform:translateY(0); }
+    .message { text-align:center; margin-top:15px; min-height:20px; transition:all 0.3s ease; }
+    .success { color:#28a745; }
+    .error { color:#dc3545; }
+    .loading { display:inline-block; width:20px; height:20px; border:3px solid rgba(255,255,255,.3); border-radius:50%; border-top-color:#fff; animation:spin 1s linear infinite; margin-right:10px; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    @keyframes shake { 0%,100%{transform:translateX(0);}10%,30%,50%,70%,90%{transform:translateX(-5px);}20%,40%,60%,80%{transform:translateX(5px);} }
+    .shake { animation:shake 0.5s ease-in-out; }
+    @media(max-width:480px){ .login-box{padding:30px 20px;} h2{font-size:22px;} input{padding:10px 12px;} }
+    @media(max-width:360px){ .login-box{padding:25px 15px;} h2{font-size:20px;} }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-box">
+      <h2>Security Login</h2>
+      <form id="loginForm" novalidate>
+        <div class="input-group">
+          <input id="username" type="text" placeholder=" " autocomplete="username" required />
+          <label for="username">Username</label>
+        </div>
+        <div class="input-group">
+          <input id="password" type="password" placeholder=" " autocomplete="current-password" required />
+          <label for="password">Password</label>
+        </div>
+        <button type="submit"><span id="button-text">Login</span></button>
+        <div id="msg" class="message"></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const BACKEND_URL = "https://search-details.onrender.com";
+
+    const form = document.getElementById('loginForm');
+    const msg = document.getElementById('msg');
+    const button = form.querySelector('button');
+    const buttonText = document.getElementById('button-text');
+    const loginBox = document.querySelector('.login-box');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      msg.innerText = "";
+      msg.className = "message";
+
+      if (!username || !password) {
+        msg.innerText = "Please fill in all fields";
+        msg.className = "message error";
+        loginBox.classList.add("shake");
+        setTimeout(() => loginBox.classList.remove("shake"), 500);
+        return;
+      }
+
+      button.disabled = true;
+      buttonText.innerHTML = '<span class="loading"></span> Logging in...';
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+          // Save token and session info
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("username", data.username);
+          localStorage.setItem("userLevel", data.level);
+
+          msg.innerText = `Login successful! Welcome, ${data.username}`;
+          msg.className = "message success";
+
+          setTimeout(() => window.location.href = "index.html", 1000);
+        } else {
+          msg.innerText = data.message || "Invalid credentials.";
+          msg.className = "message error";
+          loginBox.classList.add("shake");
+          setTimeout(() => loginBox.classList.remove("shake"), 500);
+        }
+      } catch (err) {
+        msg.innerText = "Server not responding. Check backend URL.";
+        msg.className = "message error";
+        console.error(err);
+      } finally {
+        button.disabled = false;
+        buttonText.textContent = "Login";
+      }
+    });
+  </script>
+</body>
+</html>

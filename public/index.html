@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-1:#eef3ff; 
+  --bg-2:#e8f0ff; 
+  --card:#fff;
+  --primary:#2f6fff; 
+  --primary-2:#4361ee;
+  --muted:#6c757d; 
+  --shadow:0 8px 30px rgba(46,61,95,.08);
+  --radius:14px; 
+  --transition:250ms cubic-bezier(.2,.9,.3,1);
+}
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+}
+
+body{
+  font-family:'Poppins',sans-serif;
+  background:linear-gradient(135deg,var(--bg-1),var(--bg-2));
+  color:#0b1230; padding:28px; -webkit-font-smoothing:antialiased;
+}
+.wrap{
+max-width:1200px;
+margin:0 auto;
+display:grid;
+grid-template-columns:1fr 360px;
+gap:24px;
+align-items:start;
+}
+
+header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:16px;}
+header h1{font-size:22px;font-weight:600;color:var(--primary-2);}
+header p{color:var(--muted);font-size:13px;margin-top:2px;}
+.user-info{display:flex;gap:12px;align-items:center;}
+.user-level{padding:8px 14px;border-radius:999px;font-weight:600;font-size:13px;color:#fff;box-shadow:var(--shadow);}
+.logout-btn{background:transparent;border:1px solid rgba(11,18,48,.06);padding:8px 14px;border-radius:10px;cursor:pointer;font-weight:600;transition:var(--transition);}
+.logout-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow);background:rgba(67,97,238,.05);}
+.panel{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border-left:5px solid var(--primary);transition:var(--transition);}
+.panel:hover{transform:translateY(-4px);box-shadow:0 10px 32px rgba(67,97,238,.12);}
+.panel + .panel{margin-top:20px;}
+strong{color:#0b1230;}
+.search-row{display:flex;gap:12px;align-items:center;margin-top:8px;position:relative;}
+.search-input{flex:1;position:relative;}
+.search-input input{width:100%;padding:14px 16px;border-radius:10px;border:1px solid #e8eefc;font-size:14px;transition:var(--transition);box-shadow:0 6px 18px rgba(67,97,238,.05);}
+.search-input input:hover{border-color:var(--primary);box-shadow:0 8px 24px rgba(67,97,238,.08);}
+.search-input input:focus{border-color:var(--primary);box-shadow:0 10px 30px rgba(67,97,238,.12);}
+.search-btn{padding:12px 18px;border-radius:10px;background:linear-gradient(90deg,var(--primary),var(--primary-2));color:#fff;border:none;cursor:pointer;font-weight:600;transition:var(--transition);}
+.search-btn:hover{transform:translateY(-3px);box-shadow:0 10px 22px rgba(67,97,238,.15);}
+.suggestion-box{position:absolute;background:#fff;border:1px solid #dcdcdc;border-radius:8px;width:100%;max-height:260px;overflow-y:auto;z-index:20;box-shadow:0 4px 16px rgba(0,0,0,.08);display:none;top:48px;}
+.suggestion-item{padding:10px 14px;cursor:pointer;transition:background .2s ease;}
+.suggestion-item:hover{background:#e6f0ff;}
+.suggestion-item .small{font-size:13px;color:#666;}
+.student-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:12px;}
+.info-item{background:linear-gradient(180deg,#fff,#fbfdff);padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(10,30,80,.03);transition:var(--transition);}
+.info-item:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(67,97,238,.08);}
+.info-label{font-weight:600;font-size:13px;margin-bottom:6px;}
+.info-value{color:var(--primary-2);font-weight:600;}
+footer{grid-column:1/-1;margin-top:16px;color:var(--muted);font-size:13px;text-align:center;}
+@media(max-width:1024px){.wrap{grid-template-columns:1fr;padding:16px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Security Dashboard</h1>
+      <p>Student Search & Verification</p>
+    </div>
+    <div class="user-info">
+      <div id="userInfo" class="user-level">User</div>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <strong>Student Search</strong>
+      <div class="search-row">
+        <div class="search-input">
+          <input id="search" placeholder="Search by name, phone, or matric number...">
+          <div id="suggestions" class="suggestion-box"></div>
+        </div>
+        <button id="searchBtn" class="search-btn">Search</button>
+      </div>
+    </section>
+
+    <div id="result"></div>
+
+    <section id="studentDetails" class="panel" style="display:none;">
+      <strong>Selected Student</strong>
+      <div id="studentDetailContent" style="margin-top:12px"></div>
+    </section>
+  </main>
+
+  <footer>© 2025/2026 Security Verification</footer>
+</div>
+
+<script>
+const SHEETDB_URL = "https://sheetdb.io/api/v1/0yp4dt2rxaos4";
+const BACKEND_URL = "https://search-details.onrender.com";
+
+const getEl = id => document.getElementById(id);
+const searchInput = getEl("search");
+const searchBtn = getEl("searchBtn");
+const suggestionBox = getEl("suggestions");
+const resultBox = getEl("result");
+const studentPanel = getEl("studentDetails");
+const studentDetailContent = getEl("studentDetailContent");
+
+// --- Authentication ---
+async function checkAuth() {
+  const token = localStorage.getItem("token");
+  if (!token) return window.location.href = "login.html";
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/check`, { headers:{ "Authorization": `Bearer ${token}` } });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+    console.log("Authorized as", data.user);
+  } catch(err) {
+    console.error(err);
+    localStorage.clear();
+    window.location.href="login.html";
+  }
+}
+checkAuth();
+
+// User level badge
+// --- Display logged-in username ---
+const username = localStorage.getItem("username") || "Unknown User";
+const userLevel = localStorage.getItem("userLevel") || "security";
+const userInfo = getEl("userInfo");
+
+// Display username + role color
+userInfo.textContent = username;
+userInfo.style.background = userLevel === "admin"
+  ? "linear-gradient(90deg,#ff6b6b,#dc3545)"
+  : "linear-gradient(90deg,#2f6fff,#4361ee)";
+userInfo.title = `Access Level: ${userLevel}`;
+
+// Logout
+function logout() { localStorage.clear(); window.location.href="login.html"; }
+
+// --- Load student data ---
+let allStudents = [];
+async function loadAllStudents(){
+  try {
+    const res = await fetch(SHEETDB_URL);
+    allStudents = await res.json();
+    console.log("Loaded", allStudents.length,"records");
+  } catch(err){ console.error("Error loading:",err); }
+}
+loadAllStudents();
+
+// --- Suggestions ---
+searchInput.addEventListener("input", () => {
+  const q = searchInput.value.toLowerCase().trim();
+  suggestionBox.innerHTML = "";
+  if(!q){suggestionBox.style.display="none";return;}
+  const matches = allStudents.filter(s =>
+    (s["Full Name"]||"").toLowerCase().includes(q) ||
+    (s["Matric Number"]||"").toLowerCase().includes(q)
+  ).slice(0,10);
+  if(!matches.length){suggestionBox.style.display="none";return;}
+  suggestionBox.style.display="block";
+  suggestionBox.innerHTML = matches.map((s,i)=>`
+    <div class="suggestion-item">
+      <strong>${s["Full Name"]||"N/A"}</strong><br>
+      <span class="small">${s["Matric Number"]||""} — ${s["Faculty"]||""}</span>
+    </div>`).join("");
+  suggestionBox.querySelectorAll(".suggestion-item").forEach((item,i)=>{
+    item.onclick = () => {
+      const selected = matches[i];
+      searchInput.value = selected["Full Name"];
+      suggestionBox.style.display="none";
+      renderStudentDetails(selected);
+      studentPanel.style.display="block";
+    };
+  });
+});
+document.addEventListener("click", e => { if(!suggestionBox.contains(e.target) && e.target!==searchInput) suggestionBox.style.display="none"; });
+
+// --- Manual search ---
+searchBtn.addEventListener("click", ()=>doSearch(searchInput.value));
+searchInput.addEventListener("keyup", e => { if(e.key==="Enter") doSearch(searchInput.value); });
+
+async function doSearch(q){
+  q = q.trim(); if(!q)return resetSearchMessage();
+  resultBox.innerHTML=`<div class="small">Searching...</div>`;
+  try {
+    const encoded = encodeURIComponent(q);
+    const res = await fetch(`${SHEETDB_URL}/search_or?Full%20Name=*${encoded}*&Phone%20Number=*${encoded}*&Matric%20Number=*${encoded}*`);
+    const data = await res.json();
+    if(!Array.isArray(data)||!data.length){
+      resultBox.innerHTML=`<div class="small">No student found</div>`; studentPanel.style.display="none"; return;
+    }
+    if(data.length===1){
+      renderStudentDetails(data[0]);
+      resultBox.innerHTML=`<div class="small">1 match found — details displayed below</div>`;
+      studentPanel.style.display="block"; return;
+    }
+    resultBox.innerHTML = data.map((r,i)=>`
+      <div style="padding:6px;cursor:pointer;" onclick="renderStudentDetails(data[${i}]); studentPanel.style.display='block';">${r["Full Name"]} — ${r["Matric Number"]}</div>
+    `).join("");
+  } catch(err){ console.error(err); resultBox.innerHTML=`<div class="small">Error fetching data</div>`; }
+}
+
+function renderStudentDetails(s){
+  const fields=["Full Name","Matric Number","Level","Phone Number","Department","Faculty","Hostel Name","Hostel Number","Email"];
+  studentDetailContent.innerHTML=`<div class="student-grid">
+    ${fields.map(f=>`<div class="info-item"><div class="info-label">${f}</div><div class="info-value">${escapeHtml(s[f]||"N/A")}</div></div>`).join("")}
+  </div>`;
+  studentPanel.scrollIntoView({behavior:"smooth",block:"center"});
+}
+function resetSearchMessage(){ resultBox.innerHTML=`<div class="small">Enter a name, phone, or matric to search</div>`; studentPanel.style.display="none"; }
+function escapeHtml(str){ return String(str).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+</script>
+</body>
+</html>
