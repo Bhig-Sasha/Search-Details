@@ -1,4 +1,3 @@
-// server.js
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -9,22 +8,20 @@ const app = express();
 // --- Configuration ---
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || "defaultsecret";
-const USERS_ENV = process.env.USERS || "admin:admin123:admin,security:pass123:security";
+const USERS_ENV = process.env.USERS;
 
 // --- CORS Setup ---
 const allowedOrigins = [
-  "https://student-details1.netlify.app", // Production frontend
-  "http://127.0.0.1:5500",               // Local testing
-  "http://localhost:5500"                // Optional: if you switch to localhost
+  "https://student-details1.netlify.app",
+  "http://127.0.0.1:5500",
+  "http://localhost:5500"
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (e.g., mobile apps, Postman)
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
+      if (!origin || allowedOrigins.includes(origin)) callback(null, true);
+      else {
         console.warn("❌ CORS blocked origin:", origin);
         callback(new Error("Not allowed by CORS"));
       }
@@ -33,15 +30,15 @@ app.use(
   })
 );
 
-// --- Middleware ---
 app.use(express.json());
 
 // --- Parse USERS from .env ---
 const users = USERS_ENV.split(",").map(entry => {
-  const [username, password, level] = entry.split(":");
+  const [username, password, fullname, level] = entry.split(":");
   return {
-    username: username.trim(),
-    password: password.trim(),
+    username: (username || "").trim(),
+    password: (password || "").trim(),
+    fullname: (fullname || "").trim(),
     level: (level || "security").trim(),
   };
 });
@@ -50,27 +47,40 @@ const users = USERS_ENV.split(",").map(entry => {
 app.post("/api/auth/login", (req, res) => {
   try {
     const { username, password } = req.body;
+      console.log("🟡 Incoming login:", username, password); 
+      console.log("🧩 Available users:", users); 
+
     if (!username || !password)
       return res.status(400).json({ message: "Username and password required" });
 
     const user = users.find(
       u =>
-        u.username.toLowerCase() === username.toLowerCase() &&
-        u.password === password
+        u.username.trim().toLowerCase() === username.trim().toLowerCase() &&
+        u.password.trim() === password.trim()
     );
 
-    if (!user) {
+    if (!user)
       return res.status(401).json({ message: "Invalid username or password" });
-    }
 
-    // Sign JWT
     const token = jwt.sign(
       { user: user.username, level: user.level },
       JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    res.json({ token, level: user.level });
+    // ✅ Send consistent field names
+    res.json({
+      token,
+      username: user.username,
+      fullname: user.fullname,
+      userLevel: user.level,
+    });
+
+    console.log("✅ Sent to frontend:", {
+      username: user.username,
+      fullname: user.fullname,
+      userLevel: user.level
+    });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Server error" });
@@ -106,6 +116,5 @@ app.get("/api/check", authenticateToken, (req, res) => {
 // --- Start Server ---
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
-  console.log(`🛡️ JWT secret ${JWT_SECRET ? "is set" : "not set"}`);
   console.log(`👥 Users loaded: ${users.map(u => `${u.username}(${u.level})`).join(", ")}`);
 });
