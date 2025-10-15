@@ -95,6 +95,7 @@ header p {
   background:var(--card);
   border-radius:var(--radius);
   padding:18px;
+  margin-top: 20px;
   box-shadow:var(--shadow);
   border-left:5px solid var(--primary);
   transition:var(--transition);
@@ -194,6 +195,7 @@ footer{grid-column:1/-1;margin-top:16px;color:var(--muted);font-size:13px;text-a
     <div>
       <h1>Student Security</h1>
       <p>Student Search & Verification</p>
+      <p id="greeting" style="font-weight:500; margin-bottom:10px;"></p>
     </div>
     <div class="user-info">
       <div id="userInfo" class="user-level">User</div>
@@ -225,122 +227,235 @@ footer{grid-column:1/-1;margin-top:16px;color:var(--muted);font-size:13px;text-a
 </div>
 
 <script>
-const SHEETDB_URL = "https://sheetdb.io/api/v1/0yp4dt2rxaos4";
-const BACKEND_URL = "https://search-details.onrender.com";
+  const SHEETDB_URL = "https://sheetdb.io/api/v1/0yp4dt2rxaos4";
+  const BACKEND_URL = "https://search-details.onrender.com";
 
-const getEl = id => document.getElementById(id);
-const searchInput = getEl("search");
-const searchBtn = getEl("searchBtn");
-const suggestionBox = getEl("suggestions");
-const resultBox = getEl("result");
-const studentPanel = getEl("studentDetails");
-const studentDetailContent = getEl("studentDetailContent");
+  const getEl = id => document.getElementById(id);
+  const searchInput = getEl("search");
+  const searchBtn = getEl("searchBtn");
+  const suggestionBox = getEl("suggestions");
+  const resultBox = getEl("result");
+  const studentPanel = getEl("studentDetails");
+  const studentDetailContent = getEl("studentDetailContent");
+  const greeting = getEl("greeting");
 
-// --- Authentication ---
-async function checkAuth() {
-  const token = localStorage.getItem("token");
-  if (!token) return window.location.href = "login.html";
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/check`, { headers:{ "Authorization": `Bearer ${token}` } });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
-    console.log("Authorized as", data.user);
-  } catch(err) {
-    console.error(err);
-    localStorage.clear();
-    window.location.href="login.html";
+  // --- Create animated greeting container ---
+  const greetContainer = document.createElement("div");
+  greetContainer.id = "greetBox";
+  greetContainer.style.cssText = `
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 1s ease, transform 1s ease;
+    font-weight: 500;
+    font-size: 15px;
+    color: #333;
+  `;
+  greeting.after(greetContainer);
+
+  // --- Authentication ---
+  async function checkAuth() {
+    const token = localStorage.getItem("token");
+    if (!token) return (window.location.href = "login.html");
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/check`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      console.log("Authorized as", data.user);
+    } catch (err) {
+      console.error(err);
+      localStorage.clear();
+      window.location.href = "login.html";
+    }
   }
-}
-checkAuth();
+  checkAuth();
 
-// User level badge
-// --- Display logged-in username ---
-const fullname = localStorage.getItem("fullname") || "Unknown User";
-const userLevel = localStorage.getItem("userLevel") || "security";
-const userInfo = document.getElementById("userInfo");
+  // --- Retrieve user info ---
+  const username = localStorage.getItem("username")?.trim() || "User";
+  const userLevel = localStorage.getItem("userLevel")?.trim() || "Security";
 
-userInfo.textContent = fullname;
-userInfo.style.background = userLevel.toLowerCase() === "admin"
-  ? "linear-gradient(90deg,#ff6b6b,#dc3545)"
-  : "linear-gradient(90deg,#2f6fff,#4361ee)";
-userInfo.title = `Access Level: ${userLevel}`;
+  // --- Greeting ---
+  const hour = new Date().getHours();
+  let greetText = "Welcome";
+  if (hour < 12) greetText = "Good morning";
+  else if (hour < 18) greetText = "Good afternoon";
+  else greetText = "Good evening";
 
-// Logout
-function logout() { localStorage.clear(); window.location.href="login.html"; }
+  greeting.textContent = `${greetText}, ${username}!`;
 
-// --- Load student data ---
-let allStudents = [];
-async function loadAllStudents(){
-  try {
-    const res = await fetch(SHEETDB_URL);
-    allStudents = await res.json();
-    console.log("Loaded", allStudents.length,"records");
-  } catch(err){ console.error("Error loading:",err); }
-}
-loadAllStudents();
+  // 👋 Animated "Welcome back" message
+  setTimeout(() => {
+    greetContainer.innerHTML = `👋 <span style="color:#2f6fff;font-weight:600;">Welcome back</span>, ${username}!`;
+    greetContainer.style.opacity = "1";
+    greetContainer.style.transform = "translateY(0)";
+  }, 500);
 
-// --- Suggestions ---
-searchInput.addEventListener("input", () => {
-  const q = searchInput.value.toLowerCase().trim();
-  suggestionBox.innerHTML = "";
-  if(!q){suggestionBox.style.display="none";return;}
-  const matches = allStudents.filter(s =>
-    (s["Full Name"]||"").toLowerCase().includes(q) ||
-    (s["Matric Number"]||"").toLowerCase().includes(q)
-  ).slice(0,10);
-  if(!matches.length){suggestionBox.style.display="none";return;}
-  suggestionBox.style.display="block";
-  suggestionBox.innerHTML = matches.map((s,i)=>`
-    <div class="suggestion-item">
-      <strong>${s["Full Name"]||"N/A"}</strong><br>
-      <span class="small">${s["Matric Number"]||""} — ${s["Faculty"]||""}</span>
-    </div>`).join("");
-  suggestionBox.querySelectorAll(".suggestion-item").forEach((item,i)=>{
-    item.onclick = () => {
-      const selected = matches[i];
-      searchInput.value = selected["Full Name"];
-      suggestionBox.style.display="none";
-      renderStudentDetails(selected);
-      studentPanel.style.display="block";
-    };
+  // ⏳ Fade out after 3 seconds
+  setTimeout(() => {
+    greetContainer.style.opacity = "0";
+    greetContainer.style.transform = "translateY(-10px)";
+  }, 3500);
+
+  // --- User badge ---
+  const userInfo = document.getElementById("userInfo");
+  userInfo.textContent = username;
+  userInfo.style.background =
+    userLevel.toLowerCase() === "admin"
+      ? "linear-gradient(90deg,#ff6b6b,#dc3545)"
+      : "linear-gradient(90deg,#2f6fff,#4361ee)";
+  userInfo.title = `Access Level: ${userLevel}`;
+
+  // --- Logout ---
+  function logout() {
+    localStorage.clear();
+    window.location.href = "login.html";
+  }
+
+  // --- Load student data ---
+  let allStudents = [];
+  async function loadAllStudents() {
+    try {
+      const res = await fetch(SHEETDB_URL);
+      allStudents = await res.json();
+      console.log("Loaded", allStudents.length, "records");
+    } catch (err) {
+      console.error("Error loading:", err);
+    }
+  }
+  loadAllStudents();
+
+  // --- Suggestions ---
+  searchInput.addEventListener("input", () => {
+    const q = searchInput.value.toLowerCase().trim();
+    suggestionBox.innerHTML = "";
+    if (!q) {
+      suggestionBox.style.display = "none";
+      return;
+    }
+
+    const matches = allStudents
+      .filter(
+        (s) =>
+          (s["Full Name"] || "").toLowerCase().includes(q) ||
+          (s["Matric Number"] || "").toLowerCase().includes(q)
+      )
+      .slice(0, 10);
+
+    if (!matches.length) {
+      suggestionBox.style.display = "none";
+      return;
+    }
+
+    suggestionBox.style.display = "block";
+    suggestionBox.innerHTML = matches
+      .map(
+        (s, i) => `
+      <div class="suggestion-item">
+        <strong>${s["Full Name"] || "N/A"}</strong><br>
+        <span class="small">${s["Matric Number"] || ""} — ${
+          s["Faculty"] || ""
+        }</span>
+      </div>`
+      )
+      .join("");
+
+    suggestionBox.querySelectorAll(".suggestion-item").forEach((item, i) => {
+      item.onclick = () => {
+        const selected = matches[i];
+        searchInput.value = selected["Full Name"];
+        suggestionBox.style.display = "none";
+        renderStudentDetails(selected);
+        studentPanel.style.display = "block";
+      };
+    });
   });
-});
-document.addEventListener("click", e => { if(!suggestionBox.contains(e.target) && e.target!==searchInput) suggestionBox.style.display="none"; });
 
-// --- Manual search ---
-searchBtn.addEventListener("click", ()=>doSearch(searchInput.value));
-searchInput.addEventListener("keyup", e => { if(e.key==="Enter") doSearch(searchInput.value); });
+  document.addEventListener("click", (e) => {
+    if (!suggestionBox.contains(e.target) && e.target !== searchInput)
+      suggestionBox.style.display = "none";
+  });
 
-async function doSearch(q){
-  q = q.trim(); if(!q)return resetSearchMessage();
-  resultBox.innerHTML=`<div class="small">Searching...</div>`;
-  try {
-    const encoded = encodeURIComponent(q);
-    const res = await fetch(`${SHEETDB_URL}/search_or?Full%20Name=*${encoded}*&Phone%20Number=*${encoded}*&Matric%20Number=*${encoded}*`);
-    const data = await res.json();
-    if(!Array.isArray(data)||!data.length){
-      resultBox.innerHTML=`<div class="small">No student found</div>`; studentPanel.style.display="none"; return;
+  // --- Manual search ---
+  searchBtn.addEventListener("click", () => doSearch(searchInput.value));
+  searchInput.addEventListener("keyup", (e) => {
+    if (e.key === "Enter") doSearch(searchInput.value);
+  });
+
+  async function doSearch(q) {
+    q = q.trim();
+    if (!q) return resetSearchMessage();
+    resultBox.innerHTML = `<div class="small">Searching...</div>`;
+
+    try {
+      const encoded = encodeURIComponent(q);
+      const res = await fetch(
+        `${SHEETDB_URL}/search_or?Full%20Name=*${encoded}*&Phone%20Number=*${encoded}*&Matric%20Number=*${encoded}*`
+      );
+      const data = await res.json();
+
+      if (!Array.isArray(data) || !data.length) {
+        resultBox.innerHTML = `<div class="small">No student found</div>`;
+        studentPanel.style.display = "none";
+        return;
+      }
+
+      if (data.length === 1) {
+        renderStudentDetails(data[0]);
+        resultBox.innerHTML = `<div class="small">1 match found — details displayed below</div>`;
+        studentPanel.style.display = "block";
+        return;
+      }
+
+      resultBox.innerHTML = data
+        .map(
+          (r, i) => `
+        <div style="padding:6px;cursor:pointer;" onclick="renderStudentDetails(data[${i}]); studentPanel.style.display='block';">${r["Full Name"]} — ${r["Matric Number"]}</div>`
+        )
+        .join("");
+    } catch (err) {
+      console.error(err);
+      resultBox.innerHTML = `<div class="small">Error fetching data</div>`;
     }
-    if(data.length===1){
-      renderStudentDetails(data[0]);
-      resultBox.innerHTML=`<div class="small">1 match found — details displayed below</div>`;
-      studentPanel.style.display="block"; return;
-    }
-    resultBox.innerHTML = data.map((r,i)=>`
-      <div style="padding:6px;cursor:pointer;" onclick="renderStudentDetails(data[${i}]); studentPanel.style.display='block';">${r["Full Name"]} — ${r["Matric Number"]}</div>
-    `).join("");
-  } catch(err){ console.error(err); resultBox.innerHTML=`<div class="small">Error fetching data</div>`; }
-}
+  }
 
-function renderStudentDetails(s){
-  const fields=["Full Name","Matric Number","Level","Phone Number","Department","Faculty","Hostel Name","Hostel Number","Email"];
-  studentDetailContent.innerHTML=`<div class="student-grid">
-    ${fields.map(f=>`<div class="info-item"><div class="info-label">${f}</div><div class="info-value">${escapeHtml(s[f]||"N/A")}</div></div>`).join("")}
-  </div>`;
-  studentPanel.scrollIntoView({behavior:"smooth",block:"center"});
-}
-function resetSearchMessage(){ resultBox.innerHTML=`<div class="small">Enter a name, phone, or matric to search</div>`; studentPanel.style.display="none"; }
-function escapeHtml(str){ return String(str).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-</script>
+  function renderStudentDetails(s) {
+    const fields = [
+      "Full Name",
+      "Matric Number",
+      "Level",
+      "Phone Number",
+      "Department",
+      "Faculty",
+      "Hostel Name",
+      "Hostel Number",
+      "Email",
+    ];
+    studentDetailContent.innerHTML = `<div class="student-grid">
+      ${fields
+        .map(
+          (f) => `
+        <div class="info-item">
+          <div class="info-label">${f}</div>
+          <div class="info-value">${escapeHtml(s[f] || "N/A")}</div>
+        </div>`
+        )
+        .join("")}
+    </div>`;
+    studentPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function resetSearchMessage() {
+    resultBox.innerHTML = `<div class="small">Enter a name, phone, or matric to search</div>`;
+    studentPanel.style.display = "none";
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (m) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m])
+    );
+  }
+</script>    
 </body>
 </html>
