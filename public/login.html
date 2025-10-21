@@ -35,11 +35,21 @@
       box-shadow: 0 15px 30px rgba(0,0,0,0.15);
     }
 
+    /* ✅ Responsive Logo */
     .logo {
-      width: 80%;
-      height: 80px;
+      width: 100%;
+      max-width: 250px;
+      height: auto;
       object-fit: contain;
-      margin-bottom: 15px;
+      margin: 0 auto 20px;
+      display: block;
+    }
+
+    @media (max-width: 480px) {
+      .logo {
+        max-width: 180px;
+        margin-bottom: 15px;
+      }
     }
 
     h2 {
@@ -207,7 +217,7 @@
         <div class="input-group">
           <input id="password" type="password" placeholder=" " autocomplete="current-password" required />
           <label for="password">Password</label>
-          <span class="toggle-password" id="togglePassword"></span>
+          <span class="toggle-password" id="togglePassword">👁️</span>
         </div>
 
         <button type="submit"><span id="button-text">Login</span></button>
