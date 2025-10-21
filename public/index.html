@@ -239,19 +239,6 @@ footer{grid-column:1/-1;margin-top:16px;color:var(--muted);font-size:13px;text-a
   const studentDetailContent = getEl("studentDetailContent");
   const greeting = getEl("greeting");
 
-  // --- Create animated greeting container ---
-  const greetContainer = document.createElement("div");
-  greetContainer.id = "greetBox";
-  greetContainer.style.cssText = `
-    opacity: 0;
-    transform: translateY(10px);
-    transition: opacity 1s ease, transform 1s ease;
-    font-weight: 500;
-    font-size: 15px;
-    color: #333;
-  `;
-  greeting.after(greetContainer);
-
   // --- Authentication ---
   async function checkAuth() {
     const token = localStorage.getItem("token");

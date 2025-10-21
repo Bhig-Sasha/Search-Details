@@ -17,7 +17,9 @@
       min-height: 100vh;
       padding: 20px;
     }
+
     .login-container { width: 100%; max-width: 400px; perspective: 1000px; }
+
     .login-box {
       background: #fff;
       padding: 40px 30px;
@@ -25,8 +27,21 @@
       box-shadow: 0 10px 25px rgba(0,0,0,0.1);
       animation: fadeIn 0.8s ease-out;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
+      text-align: center;
     }
-    .login-box:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.15); }
+
+    .login-box:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+    }
+
+    .logo {
+      width: 80%;
+      height: 80px;
+      object-fit: contain;
+      margin-bottom: 15px;
+    }
+
     h2 {
       text-align: center;
       margin-bottom: 25px;
@@ -35,6 +50,7 @@
       position: relative;
       padding-bottom: 10px;
     }
+
     h2:after {
       content: '';
       position: absolute; bottom: 0; left: 50%;
@@ -42,7 +58,9 @@
       width: 50px; height: 3px;
       background: #007bff; border-radius: 2px;
     }
-    .input-group { position: relative; margin-bottom: 25px; }
+
+    .input-group { position: relative; margin-bottom: 25px; text-align: left; }
+
     input {
       width: 100%;
       padding: 12px 40px 12px 15px;
@@ -52,6 +70,7 @@
       background: #f9f9f9;
       transition: all 0.3s ease;
     }
+
     input:focus {
       outline: none;
       border-color: #007bff;
@@ -59,6 +78,7 @@
       background: #fff;
       transform: translateY(-2px);
     }
+
     label {
       position: absolute;
       top: 50%; left: 15px;
@@ -67,6 +87,7 @@
       pointer-events: none;
       transition: all 0.3s ease;
     }
+
     input:focus + label,
     input:not(:placeholder-shown) + label {
       top: -10px;
@@ -76,6 +97,7 @@
       background: #fff;
       padding: 0 5px;
     }
+
     .toggle-password {
       position: absolute;
       right: 12px;
@@ -86,6 +108,7 @@
       color: #666;
       user-select: none;
     }
+
     .toggle-password:hover { color: #007bff; }
 
     button {
@@ -100,7 +123,12 @@
       font-weight: 500;
       transition: all 0.3s ease;
     }
-    button:hover { background: #0056b3; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,123,255,0.3); }
+
+    button:hover {
+      background: #0056b3;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+    }
 
     .message {
       text-align: center;
@@ -110,6 +138,7 @@
       opacity: 1;
       transition: opacity 0.5s ease;
     }
+
     .fade-out { opacity: 0; }
     .success { color: #28a745; }
     .error { color: #dc3545; }
@@ -126,22 +155,49 @@
       vertical-align: middle;
     }
 
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .request-account {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .request-account a {
+      color: #007bff;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .request-account a:hover { text-decoration: underline; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     @keyframes spin { to { transform: rotate(360deg); } }
+
     @keyframes shake { 
       0%,100%{transform:translateX(0);}
       10%,30%,50%,70%,90%{transform:translateX(-5px);}
       20%,40%,60%,80%{transform:translateX(5px);}
     }
+
     .shake { animation: shake 0.5s ease-in-out; }
 
-    @media (max-width: 480px) { .login-box { padding: 30px 20px; } h2 { font-size: 22px; } }
+    @media (max-width: 480px) {
+      .login-box { padding: 30px 20px; }
+      h2 { font-size: 22px; }
+    }
   </style>
 </head>
 <body>
   <div class="login-container">
     <div class="login-box">
-      <h2>Security Login</h2>
+      <!-- 🔹 Logo -->
+      <img src="/biu-logo.png" alt="Logo" class="logo" />
+
+      <h2>Welcome Back!</h2>
       <form id="loginForm" novalidate>
         <div class="input-group">
           <input id="username" type="text" placeholder=" " autocomplete="username" required />
@@ -157,6 +213,11 @@
         <button type="submit"><span id="button-text">Login</span></button>
         <div id="msg" class="message"></div>
       </form>
+
+      <!-- 🔹 Request Account Note -->
+      <p class="request-account">
+        Don’t have an account?<br><a>Request one from admin</a>
+      </p>
     </div>
   </div>
 
@@ -213,18 +274,15 @@
         console.log("🟢 Login Response:", data);
   
         if (res.ok) {
-          // ✅ Pick the best available name
           const displayName = data.fullname && data.fullname.trim() !== ""
             ? data.fullname
             : (data.username || username);
   
-          // ✅ Save user info to localStorage
           localStorage.setItem("token", data.token || "");
           localStorage.setItem("username", data.username || username);
           localStorage.setItem("fullname", displayName);
           localStorage.setItem("userLevel", data.userLevel || "Security");
   
-          // ✅ Show welcome message
           showMessage(`Welcome, ${displayName}!`, "success");
           setTimeout(() => window.location.href = "index.html", 1000);
         } else {
@@ -246,7 +304,6 @@
       }
     });
   
-    // ✨ Helper: Show message & fade after 3s
     function showMessage(text, type) {
       msg.textContent = text;
       msg.className = `message ${type}`;
@@ -255,7 +312,6 @@
       setTimeout(() => msg.classList.add("fade-out"), 3000);
     }
   
-    // ✨ Helper: Shake animation
     function shake() {
       loginBox.classList.add("shake");
       setTimeout(() => loginBox.classList.remove("shake"), 500);
